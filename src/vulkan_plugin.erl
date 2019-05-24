@@ -6,16 +6,25 @@
 -export([load/2, run/4]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
+-type run_cb() :: fun(([binary()]) -> {ok, binary()} |
+                                      {error, no_such_command | binary()}).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec start_link() -> {ok, pid()} | ignore | {error, term()}.
 start_link() ->
     gen_server:start_link(?MODULE, #{}, []).
 
+-spec load(pid(), atom()) -> ok |
+                             {error,
+                              {module_already_loaded, atom()} |
+                              {commands_already_loaded, [binary()]}}.
 load(Pid, Module) ->
     gen_server:call(Pid, {load, Module}).
 
+-spec run(pid(), binary(), [binary()], run_cb()) -> ok.
 run(Pid, Command, Args, Callback) ->
     gen_server:cast(Pid, {run, Command, Args, Callback}).
 

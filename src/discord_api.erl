@@ -12,10 +12,12 @@
 %% API
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec start_link(binary()) -> {ok, pid()} | ignore | {error, term()}.
 start_link(Token) ->
     Args = #{token => Token, jobs => #{}},
     gen_server:start_link(?MODULE, Args, []).
 
+-spec create_message(pid(), string(), binary()) -> ok.
 create_message(Pid, Channel, Message) ->
     Body = #{<<"content">> => Message},
     URL = "/channels/" ++ Channel ++ "/messages",

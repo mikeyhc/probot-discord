@@ -18,9 +18,14 @@
 %% API functions
 %%====================================================================
 
+-spec start_link(binary()) -> {ok, pid()} |
+                              ignore |
+                              {error, {already_started, pid()} |
+                                      {shutdown, term()}}.
 start_link(Token) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, Token).
 
+-spec get_api_server() -> pid().
 get_api_server() ->
     Children = supervisor:which_children(?MODULE),
     {value, {_, Pid, _, _}} = lists:keysearch(discord_api, 1, Children),

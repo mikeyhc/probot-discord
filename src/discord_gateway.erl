@@ -13,6 +13,7 @@
 %% API
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec start_link(binary()) -> {ok, pid()} | ignore | {error, term()}.
 start_link(Token) ->
     gen_server:start_link(?MODULE, #{token => Token}, []).
 

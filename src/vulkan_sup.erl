@@ -20,9 +20,14 @@
 %% API functions
 %%====================================================================
 
+-spec start_link(binary()) -> {ok, pid()} |
+                              ignore |
+                              {error, {already_started, pid()} |
+                                      {shutdown, term()}}.
 start_link(Token)->
     supervisor:start_link({local, ?SERVER}, ?MODULE, Token).
 
+-spec get_plugin_server() -> pid().
 get_plugin_server() ->
     Children = supervisor:which_children(?SERVER),
     {value, {_, Pid, _, _}}  = lists:keysearch(vulkan_plugin, 1, Children),

@@ -14,7 +14,6 @@
 %% API
 %%====================================================================
 
-%TODO get token from environment
 start(_StartType, _StartArgs) ->
     Token = case os:getenv("DISCORD_TOKEN") of
                 false -> throw(missing_token);
