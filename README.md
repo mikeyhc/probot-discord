@@ -1,2 +1,2 @@
-# probot-discord
+# vulkan-discord
 Simple discord bot in erlang
