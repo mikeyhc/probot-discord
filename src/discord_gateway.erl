@@ -153,6 +153,12 @@ with_error_handling(Channel, Command, F) ->
             B = lists:flatten(
                   io_lib:format("command not found: ~s", [Command])),
             discord_api:create_message(Pid, Channel, binary:list_to_bin(B));
+       ({error, Message}) ->
+            Pid = discord_sup:get_api_server(),
+            B = lists:flatten(
+                  io_lib:format("error in command: ~s~n~s",
+                                [Command, Message])),
+            discord_api:create_message(Pid, Channel, binary:list_to_bin(B));
        ({ok, V}) -> F(V)
     end.
 

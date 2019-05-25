@@ -44,11 +44,25 @@ handle_call({unload, _Name}, _From, State) ->
     {noreply, State}.
 
 handle_cast({run, Command, Args, Callback}, S=#{commands := Commands}) ->
-    Result = case maps:is_key(Command, Commands) of
-                 true ->
-                     F = maps:get(Command, Commands),
-                     F(Args);
-                 false -> {error, no_such_command}
+    Result = try
+                 case maps:is_key(Command, Commands) of
+                     true ->
+                         F = maps:get(Command, Commands),
+                         F(Args);
+                     false -> {error, no_such_command}
+                 end
+             catch
+                 error:badarg:St ->
+                     logger:error("error in plugin: badarg~n", []),
+                     logger:error("~p", [St]),
+                     {error, <<"invalid argument">>};
+                 error:X:St ->
+                     logger:error("error in plugin: ~p~n", [X]),
+                     logger:error("~p", [St]),
+                     {error, <<"an error occurred">>};
+                 X ->
+                     logger:error("exception in plugin: ~p~n", [X]),
+                     {error, <<"an error occurred">>}
              end,
     Callback(Result),
     {noreply, S}.
