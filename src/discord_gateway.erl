@@ -12,9 +12,18 @@
 -record(payload, {op :: non_neg_integer(),
                   d :: map(),
                   s=undefined :: non_neg_integer() | undefined,
-                  t=undefined :: binary() | undefined}).
+                  t=undefined :: binary() | undefined
+                 }).
+
+-record(connection, {args :: string(),
+                     host :: string(),
+                     mref :: reference(),
+                     pid :: pid(),
+                     stream=undefined :: reference() | undefined
+                    }).
 
 -type payload() :: #payload{}.
+% -type connection() :: #connection{}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,8 +43,7 @@ init(Args) ->
     {ok, Args#{retries => ?MAX_RETIRES}}.
 
 terminate(_Reason, #{conn := Conn}) ->
-    #{pid := ConnPid} = Conn,
-    gun:close(ConnPid).
+    gun:close(Conn#connection.pid).
 
 handle_call(_Msg, _From, State) ->
     {noreply, State}.
@@ -47,30 +55,29 @@ handle_cast({connect, Host, Args}, State) ->
     MRef = monitor(process, ConnPid),
     gun:ws_upgrade(ConnPid, Args, []),
     logger:info("connected to ~s", [Host]),
-    Connection = #{ pid => ConnPid,
-                    mref => MRef,
-                    host => Host,
-                    args => Args
-                  },
+    Connection = #connection{pid=ConnPid,
+                             mref=MRef,
+                             host=Host,
+                             args=Args
+                            },
     {noreply, State#{conn => Connection}};
 handle_cast(reconnect, #{retries := 0}) ->
     throw(max_retries_exceeded);
 handle_cast(reconnect, S0 = #{conn := Conn, retries := Retries}) ->
     logger:info("reconnecting"),
-    #{pid := Pid, host := Host, args := Args} = Conn,
-    gun:close(Pid),
-    gen_server:cast(self(), {connect, Host, Args}),
+    gun:close(Conn#connection.pid),
+    gen_server:cast(self(), {connect,
+                             Conn#connection.host,
+                             Conn#connection.args}),
     {noreply, S0#{retries := Retries - 1}};
 % TODO: detect un-acked heartbeat
 handle_cast(send_heartbeat, S = #{conn := Conn, heartbeat := Heartbeat}) ->
-    #{pid := ConnPid} = Conn,
     #{seq := Seq} = Heartbeat,
     Msg = jiffy:encode(#{<<"op">> => 1, <<"d">> => Seq}),
     logger:info("sending heartbeat message"),
-    gun:ws_send(ConnPid, {text, Msg}),
+    gun:ws_send(Conn#connection.pid, {text, Msg}),
     {noreply, S};
 handle_cast(identify, S=#{token := Token, conn := Conn}) ->
-    #{pid := ConnPid} = Conn,
     Ident = #{<<"token">> => Token,
               <<"properties">> => #{
                   <<"$os">> => ?OS,
@@ -80,12 +87,12 @@ handle_cast(identify, S=#{token := Token, conn := Conn}) ->
              },
     Msg = jiffy:encode(#{<<"op">> => 2, <<"d">> => Ident}),
     logger:info("sending identify"),
-    gun:ws_send(ConnPid, {text, Msg}),
+    gun:ws_send(Conn#connection.pid, {text, Msg}),
     {noreply, S}.
 
 %% eat upgrade message
 handle_info({gun_upgrade, _Pid, Stream, _Protos, _Headers}, S=#{conn := C}) ->
-    {noreply, S#{conn => C#{stream => Stream}}};
+    {noreply, S#{conn => C#connection{stream = Stream}}};
 handle_info({gun_ws, _ConnPid, _Ref, {text, Body}}, State) ->
     Msg = decode_payload(Body),
     {noreply, handle_message(Msg#payload.op, Msg, State)}.
@@ -102,6 +109,7 @@ decode_payload(Msg) ->
              s = maps:get(<<"s">>, Json, undefined),
              t = maps:get(<<"t">>, Json, undefined)}.
 
+-spec handle_message(non_neg_integer(), payload(), map()) -> map().
 handle_message(0, Msg, S0) ->
     logger:info("received dispatch message"),
     logger:debug("message was: ~p", [Msg]),
