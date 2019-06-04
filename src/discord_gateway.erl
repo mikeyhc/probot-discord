@@ -9,6 +9,14 @@
 
 -define(MAX_RETIRES, 5).
 
+-record(payload, {op :: non_neg_integer(),
+                  d :: map(),
+                  s=undefined :: non_neg_integer() | undefined,
+                  t=undefined :: binary() | undefined}).
+
+-type payload() :: #payload{}.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,31 +87,37 @@ handle_cast(identify, S=#{token := Token, conn := Conn}) ->
 handle_info({gun_upgrade, _Pid, Stream, _Protos, _Headers}, S=#{conn := C}) ->
     {noreply, S#{conn => C#{stream => Stream}}};
 handle_info({gun_ws, _ConnPid, _Ref, {text, Body}}, State) ->
-    Msg = jiffy:decode(Body, [return_maps]),
-    #{<<"op">> := Op} = Msg,
-    {noreply, handle_message(Op, Msg, State)}.
+    Msg = decode_payload(Body),
+    {noreply, handle_message(Msg#payload.op, Msg, State)}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% helper methods
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec decode_payload(binary()) -> payload().
+decode_payload(Msg) ->
+    Json = jiffy:decode(Msg, [return_maps]),
+    #payload{op = maps:get(<<"op">>, Json),
+             d = maps:get(<<"d">>, Json),
+             s = maps:get(<<"s">>, Json, undefined),
+             t = maps:get(<<"t">>, Json, undefined)}.
+
 handle_message(0, Msg, S0) ->
     logger:info("received dispatch message"),
     logger:debug("message was: ~p", [Msg]),
-    #{<<"d">> := DField, <<"s">> := Seq} = Msg,
     OldSessionId = maps:get(session_id, S0, undefined),
-    SessionId = maps:get(<<"session_id">>, DField, OldSessionId),
+    SessionId = maps:get(<<"session_id">>, Msg#payload.d, OldSessionId),
     case SessionId of
         undefined -> throw(missing_session_id);
         _ -> ok
     end,
     #{heartbeat := H0} = S0,
-    case maps:get(<<"content">>, DField, undefined) of
+    case maps:get(<<"content">>, Msg#payload.d, undefined) of
         <<"!", Command/binary>> ->
-            handle_command(maps:get(<<"channel_id">>, DField), Command);
+            handle_command(maps:get(<<"channel_id">>, Msg#payload.d), Command);
         _ -> ok
     end,
-    S0#{session_id => SessionId, heartbeat => H0#{seq => Seq}};
+    S0#{session_id => SessionId, heartbeat => H0#{seq => Msg#payload.s}};
 handle_message(10, Msg, S0) ->
     logger:info("received heartbeat request"),
     H0 = maps:get(heartbeat, S0, undefined),
@@ -125,9 +139,9 @@ remove_heartbeat_schedule(#{tref := TRef}) ->
     {ok, cancel} = timer:cancel(TRef),
     logger:info("hearbeat schedule removed").
 
-make_heartbeat(#{<<"d">> := Heartbeat, <<"s">> := Seq}) ->
-    #{<<"heartbeat_interval">> := Interval} = Heartbeat,
-    #{interval => Interval, seq => Seq}.
+make_heartbeat(Msg) ->
+    #{<<"heartbeat_interval">> := Interval} = Msg#payload.d,
+    #{interval => Interval, seq => Msg#payload.s}.
 
 add_heartbeat_schedule(H = #{interval := Interval}) ->
     {ok, TRef} = timer:apply_interval(Interval, gen_server, cast,
