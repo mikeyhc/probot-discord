@@ -1,0 +1,13 @@
+language: erlang
+otp_release:
+  - 21.0
+install:
+  - wget https://s3.amazonaws.com/rebar3/rebar3
+  - chmod +x rebar3
+script:
+  - ./rebar3 version
+  - ./rebar3 do dialyzer, xref, ct, cover, coveralls send
+notifications:
+  email:
+    recipients:
+      - mikeyhc@atmosia.net
