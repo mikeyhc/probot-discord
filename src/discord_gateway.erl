@@ -6,25 +6,7 @@
 -export([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 
 -include("discord.hrl").
-
--define(MAX_RETIRES, 5).
-
--record(payload, {op :: non_neg_integer(),
-                  d :: map(),
-                  s=undefined :: non_neg_integer() | undefined,
-                  t=undefined :: binary() | undefined
-                 }).
-
--record(connection, {args :: string(),
-                     host :: string(),
-                     mref :: reference(),
-                     pid :: pid(),
-                     stream=undefined :: reference() | undefined
-                    }).
-
--type payload() :: #payload{}.
-% -type connection() :: #connection{}.
-
+-include("discord_gateway.hrl").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
