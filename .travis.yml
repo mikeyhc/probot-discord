@@ -6,7 +6,7 @@ install:
   - chmod +x rebar3
 script:
   - ./rebar3 version
-  - ./rebar3 as test do dialyzer, xref, cover, coveralls send
+  - DEBUG=1 ./rebar3 as test do dialyzer, xref, cover, coveralls send
 notifications:
   email:
     recipients:
