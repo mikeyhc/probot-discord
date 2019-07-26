@@ -9,7 +9,9 @@ module_installed_test_() ->
     ].
 
 commands_installed_test_() ->
-    [?_assertEqual(vulkan_plugin:commands_installed(#{}, #{a => true}),  [])
+    S0 = #{a => true },
+    [?_assertEqual([], vulkan_plugin:commands_installed(#{}, S0)),
+     ?_assertEqual([a], vulkan_plugin:commands_installed(S0, S0))
     ].
 
 install_module_test_() ->
@@ -18,10 +20,10 @@ install_module_test_() ->
     Info0 = #{commands => #{a => true}},
     State0 = #{commands => #{}, plugins => #{}},
     State1 = #{commands => #{a => true}, plugins => #{Plugin0 => Info0}},
-    [?_assertEqual(vulkan_plugin:install_module(Plugin0, Info0, State0),
-                   {ok, State1}),
-     ?_assertEqual(vulkan_plugin:install_module(Plugin0, Info0, State1),
-                   {error, {module_already_loaded, plugin}}),
-     ?_assertEqual(vulkan_plugin:install_module(Plugin1, Info0, State1),
-                   {error, {commands_already_loaded, [a]}})
+    [?_assertEqual({ok, State1},
+                   vulkan_plugin:install_module(Plugin0, Info0, State0)),
+     ?_assertEqual({error, {module_already_loaded, plugin}},
+                   vulkan_plugin:install_module(Plugin0, Info0, State1)),
+     ?_assertEqual({error, {commands_already_loaded, [a]}},
+                   vulkan_plugin:install_module(Plugin1, Info0, State1))
     ].

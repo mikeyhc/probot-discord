@@ -33,5 +33,5 @@ make_heartbeat_test_() ->
     Set = [{#payload{d = #{<<"heartbeat_interval">> => 100}, s = 0},
             #{interval => 100, seq => 0}}],
     lists:map(
-      fun({I, O}) -> ?_assertEqual(discord_gateway:make_heartbeat(I), O) end,
+      fun({I, O}) -> ?_assertEqual(O, discord_gateway:make_heartbeat(I)) end,
       Set).
