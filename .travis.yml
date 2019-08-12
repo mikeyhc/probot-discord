@@ -7,7 +7,7 @@ install:
 script:
   - ./rebar3 version
   - ./rebar3 as test do dialyzer, xref, eunit, cover
-  - ./rebar3 as test do coveralls send
+  # - ./rebar3 as test do coveralls send
 notifications:
   email:
     recipients:
