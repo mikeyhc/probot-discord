@@ -35,6 +35,7 @@ postfixify(Stack) ->
     postfixify(Stack, []).
 
 postfixify([], S) -> lists:reverse(S);
+% TODO check if this can be accessed by a list with more than 1 element
 postfixify([N], S) -> lists:reverse([N|S]);
 postfixify([Op, A|R], S) ->
     if is_atom(Op) -> postfixify(R, push_op(Op, A, S));

@@ -93,4 +93,3 @@ commands_installed(ModuleCommands, Commands) ->
     ModuleKeys = maps:keys(ModuleCommands),
     lists:filter(fun(X) -> lists:any(fun(Y) -> Y =:= X end, ModuleKeys) end,
                  maps:keys(Commands)).
-
