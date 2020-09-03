@@ -55,7 +55,7 @@ handle_cast(reconnect, S0 = #{conn := Conn, retries := Retries}) ->
 % TODO: detect un-acked heartbeat
 handle_cast(send_heartbeat, S = #{conn := Conn, heartbeat := Heartbeat}) ->
     #{seq := Seq} = Heartbeat,
-    Msg = jiffy:encode(#{<<"op">> => 1, <<"d">> => Seq}),
+    Msg = jsone:encode(#{<<"op">> => 1, <<"d">> => Seq}),
     logger:info("sending heartbeat message"),
     gun:ws_send(Conn#connection.pid, {text, Msg}),
     {noreply, S};
@@ -67,7 +67,7 @@ handle_cast(identify, S=#{token := Token, conn := Conn}) ->
                   <<"$device">> => ?BROWSER
                  }
              },
-    Msg = jiffy:encode(#{<<"op">> => 2, <<"d">> => Ident}),
+    Msg = jsone:encode(#{<<"op">> => 2, <<"d">> => Ident}),
     logger:info("sending identify"),
     gun:ws_send(Conn#connection.pid, {text, Msg}),
     {noreply, S}.
@@ -85,7 +85,7 @@ handle_info({gun_ws, _ConnPid, _Ref, {text, Body}}, State) ->
 
 -spec decode_payload(binary()) -> payload().
 decode_payload(Msg) ->
-    Json = jiffy:decode(Msg, [return_maps]),
+    Json = jsone:decode(Msg),
     #payload{op = maps:get(<<"op">>, Json),
              d = maps:get(<<"d">>, Json),
              s = maps:get(<<"s">>, Json, undefined),
