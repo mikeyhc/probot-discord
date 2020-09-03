@@ -30,7 +30,7 @@ handle_message_failure_test_() ->
     lists:map(F, Set).
 
 make_heartbeat_test_() ->
-    Set = [{#payload{d = #{<<"heartbeat_interval">> => 100}, s = 0},
+    Set = [{#payload{d = #{<<"heartbeat_interval">> => 100}, s = 0, op=10},
             #{interval => 100, seq => 0}}],
     lists:map(
       fun({I, O}) -> ?_assertEqual(O, discord_gateway:make_heartbeat(I)) end,

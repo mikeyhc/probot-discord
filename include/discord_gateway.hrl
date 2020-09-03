@@ -1,7 +1,7 @@
 -define(MAX_RETIRES, 5).
 
 -record(payload, {op :: non_neg_integer(),
-                  d :: map(),
+                  d :: map() | list() | binary(),
                   s=undefined :: non_neg_integer() | undefined,
                   t=undefined :: binary() | undefined
                  }).
