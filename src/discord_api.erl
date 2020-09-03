@@ -91,7 +91,7 @@ post(Resource, Body, S = #{conn := Conn, token := Token, jobs := Jobs}) ->
     StreamRef = gun:post(ConnPid, ApiPath ++ Resource,
                         [{<<"Authorization">>, <<"Bot ", Token/binary>>},
                          {<<"Content-type">>, <<"application/json">>}],
-                        jiffy:encode(Body)),
+                        jsone:encode(Body)),
     S#{jobs => Jobs#{StreamRef => #{type => empty}}}.
 
 append_data(StreamRef, Data, State=#{jobs := Jobs}) ->
@@ -111,6 +111,6 @@ complete_job(StreamRef, State=#{jobs := Jobs}) ->
         body ->
             #{callback := {M, F, A}, body := Body, parser := P} = Job0,
             logger:debug("got body: ~p", [Body]),
-            apply(M, F, A ++ [P(jiffy:decode(Body, [return_maps]))])
+            apply(M, F, A ++ [P(jsone:decode(Body))])
     end,
     State#{jobs => maps:remove(StreamRef, Jobs)}.
